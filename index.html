@@ -101,7 +101,7 @@ input[type=text],textarea{width:100%;font:inherit;font-size:16px;padding:12px;bo
 
 <main class="wrap" id="done" hidden>
   <div class="done"><div class="ok">✓</div><h1 style="color:var(--teal)" data-t="thanks"></h1><p data-t="thanksSub" style="color:var(--muted)"></p>
-  <dl id="recap"></dl><button class="link" id="edit" data-t="edit"></button></div>
+  <dl id="recap"></dl><img id="sumImg" alt="" style="display:block;width:100%;max-width:420px;margin:0 auto 14px;border-radius:12px"><button class="go" id="dlImg" data-t="saveImg" style="margin-bottom:14px"></button><br><button class="link" id="edit" data-t="edit"></button></div>
 </main>
 
 <div class="bar" id="bar"><div class="wrap"><div class="sum" id="sum"></div><button class="go" id="go"></button></div></div>
@@ -110,7 +110,7 @@ input[type=text],textarea{width:100%;font:inherit;font-size:16px;padding:12px;bo
 /* ===== ตั้งค่า (แก้ตรงนี้) ===== */
 const CONFIG = {
   HOTEL_NAME: "INCHANTREE MEEDAO · KANCHANABURI",            // ชื่อโรงแรม
-  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxM-5Dps03Ie7OmLp3VOD5biwxszgzXnYszzjGFC1ryz7dWsGMceVyKO-YqrcVYkUrN/exec",                      // วาง URL ของ Google Apps Script (Web app) ที่นี่ ถ้าว่าง = โหมดทดลอง
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxYeZljvnksUmr4vd4GN7E4CtmXlD3E0JcpbsHDVVhPDcpX9dNNjy4hHgqd26zeAUwl/exec",                      // วาง URL ของ Google Apps Script (Web app) ที่นี่ ถ้าว่าง = โหมดทดลอง
   DEFAULT_SET: "khaotom",          // เซ็ตที่เลือกไว้ให้ล่วงหน้า
   CUTOFF_HOUR: 21,                     // ปิดรับสั่งหลังเวลานี้ (ชั่วโมง) 0 = ไม่จำกัด
   SETS: [
@@ -131,13 +131,13 @@ const I18N = {
   th:{title:"เลือกอาหารเช้าของคุณ",sub:"",room:"หมายเลขห้อง",guests:"จำนวนผู้ทานอาหารเช้า",diet:"ข้อจำกัดด้านอาหาร",dietHint:"เลือกได้หลายข้อ ครัวจะปรับเมนูให้ตามที่แจ้ง",set:"เลือกเซ็ตอาหารเช้า",time:"เวลาที่ต้องการทาน",place:"ทานที่ไหน",note:"แพ้อาหารหรือมีคำขอพิเศษ",noteHint:"ไม่บังคับ เช่น แพ้ถั่ว ไม่ใส่ผักชี",
    nopork:"ไม่ทานหมู",noseafood:"ไม่ทานอาหารทะเล",nopeanut:"แพ้ถั่ว",restaurant:"ที่ห้องอาหาร",inroom:"ส่งที่ห้องพัก",
    tSea:"มีอาหารทะเล",tPork:"มีเนื้อหมู",tNut:"มีถั่วลิสง",tAdj:"ครัวจะปรับเมนูนี้ให้ตามข้อจำกัดที่แจ้ง",
-   submit:"ยืนยันการเลือก",sending:"กำลังส่ง…",people:"ท่าน",thanks:"บันทึกเรียบร้อยแล้ว",thanksSub:"ทีมครัวจะเตรียมอาหารเช้าให้ตามที่เลือก",edit:"แก้ไขการเลือก",
+   submit:"ยืนยันการเลือก",sending:"กำลังส่ง…",people:"ท่าน",thanks:"บันทึกเรียบร้อยแล้ว",saveImg:"บันทึกรูปสรุป",sumTitle:"สรุปการเลือกอาหารเช้า",thanksSub:"ทีมครัวจะเตรียมอาหารเช้าให้ตามที่เลือก",edit:"แก้ไขการเลือก",
    eRoom:"กรุณากรอกหมายเลขห้อง",eSet:"กรุณาเลือกเซ็ตอาหารเช้า",eNet:"ส่งไม่สำเร็จ กรุณาลองอีกครั้งหรือแจ้งพนักงาน",closed:"ปิดรับการเลือกออนไลน์แล้ว กรุณาแจ้งพนักงานต้อนรับ",
    rRoom:"ห้อง",rSet:"เซ็ต",rTime:"เวลา",rPlace:"สถานที่",rGuests:"จำนวน",rNote:"หมายเหตุ",demo:"โหมดทดลอง: ยังไม่ได้เชื่อมต่อ Google Sheets",loading:"กำลังโหลด…",badLink:"ลิงก์นี้ใช้ไม่ได้ กรุณาติดต่อพนักงานต้อนรับ",guestN:n=>"ท่านที่ "+n,choosing:n=>"กำลังเลือกให้ท่านที่ "+n,copyAll:"ใช้เซ็ตนี้กับทุกท่าน",hello:n=>"สวัสดีคุณ "+n+" "},
   en:{title:"Choose your breakfast",sub:"",room:"Room number",guests:"Number of guests",diet:"Dietary needs",dietHint:"Select any that apply. Our kitchen will adjust your dish.",set:"Breakfast set",time:"Preferred time",place:"Where to dine",note:"Allergies or special requests",noteHint:"Optional, e.g. nut allergy, no coriander",
    nopork:"No pork",noseafood:"No seafood",nopeanut:"Peanut allergy",restaurant:"In the restaurant",inroom:"Delivered to room",
    tSea:"Contains seafood",tPork:"Contains pork",tNut:"Contains peanuts",tAdj:"Our kitchen will adjust this dish to your needs",
-   submit:"Confirm choice",sending:"Sending…",people:"guest(s)",thanks:"All set",thanksSub:"Our kitchen will prepare your breakfast as selected.",edit:"Change my choice",
+   submit:"Confirm choice",sending:"Sending…",people:"guest(s)",thanks:"All set",saveImg:"Save summary image",sumTitle:"Breakfast selection summary",thanksSub:"Our kitchen will prepare your breakfast as selected.",edit:"Change my choice",
    eRoom:"Please enter your room number",eSet:"Please choose a breakfast set",eNet:"Could not send. Please try again or ask our team.",closed:"Online selection is closed. Please ask our front desk.",
    rRoom:"Room",rSet:"Set",rTime:"Time",rPlace:"Place",rGuests:"Guests",rNote:"Note",demo:"Demo mode: Google Sheets is not connected",loading:"Loading…",badLink:"This link is not valid. Please contact our front desk.",guestN:n=>"Guest "+n,choosing:n=>"Choosing for guest "+n,copyAll:"Use this set for everyone",hello:n=>"Welcome, "+n+". "}
 };
@@ -208,6 +208,10 @@ $("go").addEventListener("click",async()=>{
   const people=S.people.map((p,i)=>{const st=CONFIG.SETS.find(x=>x.id===p.set);return {no:i+1,setId:st.id,setName:st.th[0],setLabel:st[S.lang][0],diets:[...p.diets],note:(p.note||"").trim()};});
   const order={timestamp:new Date().toISOString(),room:S.room,guest:S.name,guests:people.length,people:people.map(p=>({no:p.no,setId:p.setId,setName:p.setName,diets:p.diets.join(","),note:p.note})),place:"restaurant",note:people.length>1?people.filter(p=>p.note).map(p=>"คนที่ "+p.no+": "+p.note).join(" / "):people[0].note,lang:S.lang,token:S.tok};
   const btn=$("go");btn.disabled=true;btn.textContent=T("sending");
+  const rows=[[T("rRoom"),order.room],[T("rPlace"),T("restaurant")]];
+  people.forEach(p=>rows.push([T("guestN")(p.no),p.setLabel+(p.diets.length?" ("+p.diets.map(d=>T(d)).join(", ")+")":"")]));
+  people.forEach(p=>{if(p.note)rows.push([T("rNote")+(people.length>1?" ("+T("guestN")(p.no)+")":""),p.note]);});
+  try{S.sumCanvas=await summaryCanvas(rows,order);order.image=S.sumCanvas.toDataURL("image/jpeg",0.85);if(order.image.length>1500000)delete order.image;}catch(_){}
   try{
     if(CONFIG.SCRIPT_URL){
       const init={method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(order)};
@@ -217,15 +221,32 @@ $("go").addEventListener("click",async()=>{
       try{const k="breakfastOrders";const a=JSON.parse(localStorage.getItem(k)||"[]");a.push(order);localStorage.setItem(k,JSON.stringify(a));}catch(_){}
       console.log("ORDER (demo)",order);
     }
-    const rows=[[T("rRoom"),order.room],[T("rPlace"),T("restaurant")]];
-    people.forEach(p=>rows.push([T("guestN")(p.no),p.setLabel+(p.diets.length?" ("+p.diets.map(d=>T(d)).join(", ")+")":"")]));
-    people.forEach(p=>{if(p.note)rows.push([T("rNote")+(people.length>1?" ("+T("guestN")(p.no)+")":""),p.note]);});
     const dl=$("recap");dl.textContent="";
     rows.forEach(([k,v])=>{const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);});
+    if(S.sumCanvas)$("sumImg").src=S.sumCanvas.toDataURL("image/png");
     $("form").hidden=true;$("bar").hidden=true;$("done").hidden=false;window.scrollTo(0,0);
   }catch(_){err.textContent=T("eNet");}
   btn.disabled=false;btn.textContent=T("submit");
 });
+function wrapText(g,t,max){const out=[];let l="";for(const ch of String(t)){if(ch==="\n"){out.push(l);l="";continue;}if(g.measureText(l+ch).width>max&&l){out.push(l);l=ch;}else l+=ch;}out.push(l);return out;}
+async function summaryCanvas(rows,order){
+  try{await Promise.all(['400 28px "Noto Sans Thai"','600 28px "Noto Sans Thai"'].map(f=>document.fonts.load(f,"ก")));}catch(_){}
+  const W=800,pad=40,lab=310,F='"Noto Sans Thai",sans-serif',m=document.createElement("canvas").getContext("2d");
+  m.font="400 28px "+F;
+  const body=rows.map(([k,v])=>({k,lines:wrapText(m,v,W-pad*2-lab)}));
+  const LH=42,H=200+body.reduce((a,r)=>a+Math.max(1,r.lines.length)*LH+10,0)+70;
+  const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
+  g.fillStyle="#fff";g.fillRect(0,0,W,H);g.fillStyle="#111";g.textBaseline="alphabetic";
+  g.font="600 24px "+F;g.fillStyle="#555";g.fillText(CONFIG.HOTEL_NAME,pad,60);
+  g.font="600 38px "+F;g.fillStyle="#111";g.fillText(T("sumTitle"),pad,115);
+  g.fillStyle="#ccc";g.fillRect(pad,140,W-pad*2,2);
+  let y=190;
+  body.forEach(r=>{g.font="400 28px "+F;g.fillStyle="#666";g.fillText(r.k,pad,y);g.fillStyle="#111";g.font="600 28px "+F;
+    r.lines.forEach((l,i)=>g.fillText(l,pad+lab,y+i*LH));y+=Math.max(1,r.lines.length)*LH+10;});
+  g.font="400 22px "+F;g.fillStyle="#888";g.fillText(new Date(order.timestamp).toLocaleString(S.lang==="en"?"en-GB":"th-TH"),pad,H-28);
+  return c;
+}
+$("dlImg").addEventListener("click",()=>{if(!S.sumCanvas)return;S.sumCanvas.toBlob(bl=>{const a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download="breakfast-room-"+String(S.room).replace(/[^\w-]/g,"_")+".png";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);});});
 const setGuests=g=>{S.people=Array.from({length:g},()=>({set:CONFIG.DEFAULT_SET,diets:new Set(),note:""}));S.cur=0;};
 async function boot(){
   const g=parseInt(q.get("guests"),10);
