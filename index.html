@@ -53,6 +53,7 @@ h2{display:flex;align-items:center;gap:10px;font-size:17px;margin:0 0 4px;font-w
 .card h3{margin:0;font-family:"Noto Serif Thai",serif;font-size:17px;line-height:1.35}
 .card p{margin:3px 0 8px;font-size:13px;line-height:1.5;color:var(--muted)}
 .adj{color:var(--gold)!important}
+.apps{grid-template-columns:1fr 1fr}.card.noph{grid-template-columns:1fr}.card.noph .tx{padding:14px 40px 14px 14px}.card.noph .ph{aspect-ratio:16/10;min-height:0}
 .tag{display:inline-block;font-size:11.5px;border-radius:6px;padding:0 8px;background:var(--sage);color:var(--ink);margin:0 6px 4px 0}
 .tag.warn{background:#3b3326;color:#e2c48f}
 .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:14px;background:var(--card2)}
@@ -106,6 +107,10 @@ input[type=text],textarea{width:100%;font:inherit;font-size:16px;padding:12px 14
     <div class="row" id="diets"></div>
   </section>
   <section>
+    <h2 data-t="appH"></h2><p class="hint" data-t="appHint"></p>
+    <div class="sets apps" id="appBox" role="radiogroup"></div><p class="err" id="errApp" role="alert"></p>
+  </section>
+  <section>
     <h2 data-t="set"></h2>
     <div class="sets" id="sets" role="radiogroup"></div>
     <p style="margin:12px 0 0"><button class="link" id="copyAll" data-t="copyAll" hidden></button></p>
@@ -130,14 +135,17 @@ input[type=text],textarea{width:100%;font:inherit;font-size:16px;padding:12px 14
 /* ===== ตั้งค่า (แก้ตรงนี้) ===== */
 const CONFIG = {
   HOTEL_NAME: "INCHANTREE MEEDAO · KANCHANABURI",            // ชื่อโรงแรม
-  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbx04O0o7emvLwIzW6jXnycwx6-PScmbknezc1361sfFtwwC1iXl1t9bTkvTLjT4XYHZ/exec",                      // วาง URL ของ Google Apps Script (Web app) ที่นี่ ถ้าว่าง = โหมดทดลอง
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz1Xh4dmSF7l2lYj4Nos3xUlJD62PXmn-uhLfhHeTOLmNA5MagDxhG02Cvnzyz7dLjo/exec",                      // วาง URL ของ Google Apps Script (Web app) ที่นี่ ถ้าว่าง = โหมดทดลอง
   DEFAULT_SET: "khaotom",          // เซ็ตที่เลือกไว้ให้ล่วงหน้า
   CUTOFF_HOUR: 21,                     // ปิดรับสั่งหลังเวลานี้ (ชั่วโมง) 0 = ไม่จำกัด
   SETS: [
-    {id:"spring",contains:["pork"],th:["ปอเปี๊ยะและหมูปิ้ง","ปอเปี๊ยะหมูทอด น้ำจิ้ม หมูปิ้ง ข้าวเหนียว"],en:["Spring Rolls & Grilled Pork","Pork spring rolls with sauce, grilled pork, sticky rice"]},
     {id:"padthai",contains:["pork","seafood","peanut"],th:["ผัดไทย","ผัดไทยเส้นเล็ก ไข่ เต้าหู้ กุ้งแห้ง ถั่วงอก กุยช่าย ถั่วลิสงป่น กากหมู มะนาว"],en:["Pad Thai","Thai stir-fried thin rice noodle, egg, tofu, dried shrimp, bean sprout, chives, ground peanuts, pork crackling, lime"]},
     {id:"western",contains:["pork"],th:["เวสเทิร์นทวิสต์","ไข่ดาว เบคอน แซนด์วิชแฮมเชดดาร์ชีสขนมปังแฟลกซ์ซีดและข้าวโอ๊ต ซีซาร์สลัด ซุปเห็ด"],en:["Western Twist","Fried egg, bacon, ham and cheddar sandwich on flax seed and oat wheat loaf, caesar salad, mushroom soup"]},
     {id:"khaotom",contains:["pork","seafood"],th:["ข้าวต้ม","ข้าวต้มหมูบะช่อ กุ้งแห้ง ขึ้นฉ่าย กระเทียมเจียว เสิร์ฟพร้อมไข่เค็มและกุนเชียง"],en:["Khao Tom (Rice Soup)","Rice soup with minced pork balls, dried shrimp, celery, fried garlic, served with salted egg and Chinese sausage"]}
+  ],
+  APPS: [   // ของทานเล่น (Appetizer) บังคับเลือก 1 อย่างต่อท่าน ใส่รูปได้โดยเพิ่ม IMG["springroll"] / IMG["porkskewer"]
+    {id:"springroll",contains:["pork"],th:["ปอเปี๊ยะ","ปอเปี๊ยะหมูทอด น้ำจิ้ม"],en:["Spring Rolls","Pork spring rolls with sauce"]},
+    {id:"porkskewer",contains:["pork"],th:["หมูปิ้ง","หมูปิ้ง ข้าวเหนียว"],en:["Grilled Pork","Grilled pork skewers with sticky rice"]}
   ],
   DIETS: [
     {id:"nopork",block:["pork"]},
@@ -150,21 +158,22 @@ const IMG={"spring": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAk
 const IMGU={};
 Object.keys(IMG).forEach(k=>{try{const b=atob(IMG[k].split(",")[1]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);IMGU[k]=URL.createObjectURL(new Blob([u],{type:"image/jpeg"}));}catch(_){IMGU[k]=IMG[k];}});
 const I18N = {
-  th:{title:"เลือกอาหารเช้าของคุณ",sub:"",room:"หมายเลขห้อง",guests:"จำนวนผู้ทานอาหารเช้า",diet:"ข้อจำกัดด้านอาหาร",dietHint:"เลือกได้หลายข้อ ครัวจะปรับเมนูให้ตามที่แจ้ง",set:"เลือกเซ็ตอาหารเช้า",time:"เวลาที่ต้องการทาน",place:"ทานที่ไหน",note:"แพ้อาหารหรือมีคำขอพิเศษ",noteHint:"ไม่บังคับ เช่น แพ้ถั่ว ไม่ใส่ผักชี",
+  th:{title:"เลือกอาหารเช้าของคุณ",sub:"",room:"หมายเลขห้อง",guests:"จำนวนผู้ทานอาหารเช้า",appH:"เลือกของทานเล่น (Appetizer)",appHint:"เลือก 1 อย่างต่อท่าน ระหว่างปอเปี๊ยะหรือหมูปิ้ง",eApp:"กรุณาเลือกของทานเล่นให้ครบทุกท่าน",tApp:"Appetizer",diet:"ข้อจำกัดด้านอาหาร",dietHint:"เลือกได้หลายข้อ ครัวจะปรับเมนูให้ตามที่แจ้ง",set:"เลือกเซ็ตอาหารเช้า",time:"เวลาที่ต้องการทาน",place:"ทานที่ไหน",note:"แพ้อาหารหรือมีคำขอพิเศษ",noteHint:"ไม่บังคับ เช่น แพ้ถั่ว ไม่ใส่ผักชี",
    nopork:"ไม่ทานหมู",noseafood:"ไม่ทานอาหารทะเล",nopeanut:"แพ้ถั่ว",restaurant:"ที่ห้องอาหาร",inroom:"ส่งที่ห้องพัก",
    tSea:"มีอาหารทะเล",tPork:"มีเนื้อหมู",tNut:"มีถั่วลิสง",tAdj:"ครัวจะปรับเมนูนี้ให้ตามข้อจำกัดที่แจ้ง",
    submit:"ยืนยันการเลือก",sending:"กำลังส่ง…",people:"ท่าน",thanks:"บันทึกเรียบร้อยแล้ว",saveHint:"หรือกดค้างที่รูปแล้วเลือก \"บันทึกรูปภาพ\"",saveImg:"บันทึกรูปสรุป",sumTitle:"สรุปการเลือกอาหารเช้า",thanksSub:"ทีมครัวจะเตรียมอาหารเช้าให้ตามที่เลือก",edit:"แก้ไขการเลือก",
    eRoom:"กรุณากรอกหมายเลขห้อง",eSet:"กรุณาเลือกเซ็ตอาหารเช้า",eNet:"ส่งไม่สำเร็จ กรุณาลองอีกครั้งหรือแจ้งพนักงาน",closed:"ปิดรับการเลือกออนไลน์แล้ว กรุณาแจ้งพนักงานต้อนรับ",
-   rRoom:"ห้อง",rSet:"เซ็ต",rTime:"เวลา",rPlace:"สถานที่",rGuests:"จำนวน",rNote:"หมายเหตุ",demo:"โหมดทดลอง: ยังไม่ได้เชื่อมต่อ Google Sheets",loading:"กำลังโหลด…",badLink:"ลิงก์นี้ใช้ไม่ได้ กรุณาติดต่อพนักงานต้อนรับ",guestN:n=>"ท่านที่ "+n,choosing:n=>"กำลังเลือกให้ท่านที่ "+n,copyAll:"ใช้เซ็ตนี้กับทุกท่าน",hello:n=>"สวัสดีคุณ "+n+" "},
-  en:{title:"Choose your breakfast",sub:"",room:"Room number",guests:"Number of guests",diet:"Dietary needs",dietHint:"Select any that apply. Our kitchen will adjust your dish.",set:"Breakfast set",time:"Preferred time",place:"Where to dine",note:"Allergies or special requests",noteHint:"Optional, e.g. nut allergy, no coriander",
+   rRoom:"ห้อง",rSet:"เซ็ต",rTime:"เวลา",rPlace:"สถานที่",rGuests:"จำนวน",rNote:"หมายเหตุ",demo:"โหมดทดลอง: ยังไม่ได้เชื่อมต่อ Google Sheets",loading:"กำลังโหลด…",badLink:"ลิงก์นี้ใช้ไม่ได้ กรุณาติดต่อพนักงานต้อนรับ",kid:"เด็ก",guestN:n=>"ท่านที่ "+n,choosing:n=>"กำลังเลือกให้ท่านที่ "+n,copyAll:"ใช้เซ็ตนี้กับทุกท่าน",hello:n=>"สวัสดีคุณ "+n+" "},
+  en:{title:"Choose your breakfast",sub:"",room:"Room number",guests:"Number of guests",appH:"Choose your appetizer",appHint:"One per guest: spring rolls or grilled pork",eApp:"Please choose an appetizer for every guest",tApp:"Appetizer",diet:"Dietary needs",dietHint:"Select any that apply. Our kitchen will adjust your dish.",set:"Breakfast set",time:"Preferred time",place:"Where to dine",note:"Allergies or special requests",noteHint:"Optional, e.g. nut allergy, no coriander",
    nopork:"No pork",noseafood:"No seafood",nopeanut:"Peanut allergy",restaurant:"In the restaurant",inroom:"Delivered to room",
    tSea:"Contains seafood",tPork:"Contains pork",tNut:"Contains peanuts",tAdj:"Our kitchen will adjust this dish to your needs",
    submit:"Confirm choice",sending:"Sending…",people:"guest(s)",thanks:"All set",saveHint:"Or press and hold the image and choose Save Image",saveImg:"Save summary image",sumTitle:"Breakfast selection summary",thanksSub:"Our kitchen will prepare your breakfast as selected.",edit:"Change my choice",
    eRoom:"Please enter your room number",eSet:"Please choose a breakfast set",eNet:"Could not send. Please try again or ask our team.",closed:"Online selection is closed. Please ask our front desk.",
-   rRoom:"Room",rSet:"Set",rTime:"Time",rPlace:"Place",rGuests:"Guests",rNote:"Note",demo:"Demo mode: Google Sheets is not connected",loading:"Loading…",badLink:"This link is not valid. Please contact our front desk.",guestN:n=>"Guest "+n,choosing:n=>"Choosing for guest "+n,copyAll:"Use this set for everyone",hello:n=>"Welcome, "+n+". "}
+   rRoom:"Room",rSet:"Set",rTime:"Time",rPlace:"Place",rGuests:"Guests",rNote:"Note",demo:"Demo mode: Google Sheets is not connected",loading:"Loading…",badLink:"This link is not valid. Please contact our front desk.",kid:"child",guestN:n=>"Guest "+n,choosing:n=>"Choosing for guest "+n,copyAll:"Use this set for everyone",hello:n=>"Welcome, "+n+". "}
 };
 const q = new URLSearchParams(location.search);
-const S = {lang:q.get("lang")==="en"?"en":"th",people:[{set:CONFIG.DEFAULT_SET,diets:new Set(),note:""}],cur:0,tok:(q.get("t")||"").slice(0,40),locked:false,ready:true,touched:new Set(),room:(q.get("room")||"").slice(0,10),name:(q.get("name")||"").slice(0,40)};
+const S = {lang:q.get("lang")==="en"?"en":"th",people:[{set:CONFIG.DEFAULT_SET,diets:new Set(),note:"",app:""}],cur:0,tok:(q.get("t")||"").slice(0,40),locked:false,ready:true,touched:new Set(),room:(q.get("room")||"").slice(0,10),name:(q.get("name")||"").slice(0,40),kids:Math.max(0,Math.min(9,parseInt(q.get("kids"),10)||0))};
+const GL=n=>T("guestN")(n)+(S.kids&&n>S.people.length-S.kids?" ("+T("kid")+")":"");
 const $=id=>document.getElementById(id), T=k=>I18N[S.lang][k];
 
 function blocked(set,diets){const b=new Set();diets.forEach(d=>CONFIG.DIETS.find(x=>x.id===d).block.forEach(x=>b.add(x)));return set.contains.some(c=>b.has(c));}
@@ -179,12 +188,12 @@ function render(){
   $("gn").textContent=n;
   $("guestSec").hidden=S.locked;
   $("info").hidden=!(S.locked&&S.room);
-  $("info").textContent=T("room")+" "+S.room+" · "+n+" "+T("people");
+  $("info").textContent=T("room")+" "+S.room+" · "+n+" "+T("people")+(S.kids?" ("+T("kid")+" "+S.kids+")":"");
   const nm=p=>CONFIG.SETS.find(x=>x.id===p.set)[S.lang][0];
   $("tabs").hidden=n<2; $("who").hidden=n<2; $("copyAll").hidden=n<2;
-  $("tabs").innerHTML=S.people.map((p,i)=>`<button class="chip" role="tab" data-g="${i}" aria-pressed="${i===S.cur}">${T("guestN")(i+1)}<small>${nm(p)}</small></button>`).join("");
+  $("tabs").innerHTML=S.people.map((p,i)=>`<button class="chip" role="tab" data-g="${i}" aria-pressed="${i===S.cur}">${GL(i+1)}<small>${nm(p)}</small></button>`).join("");
   $("who").textContent=T("choosing")(S.cur+1);
-  $("noteH").textContent=T("note")+(n>1?" · "+T("guestN")(S.cur+1):"");
+  $("noteH").textContent=T("note")+(n>1?" · "+GL(S.cur+1):"");
   $("note").value=P.note||"";
   $("diets").innerHTML=CONFIG.DIETS.map(d=>`<button class="chip" data-d="${d.id}" aria-pressed="${P.diets.has(d.id)}">${T(d.id)}</button>`).join("");
   $("sets").innerHTML=CONFIG.SETS.map(s=>{
@@ -194,7 +203,10 @@ function render(){
     if(s.contains.includes("peanut"))tags.push(`<span class="tag warn">${T("tNut")}</span>`);
     return `<label class="card ${P.set===s.id?"sel":""}"><input type="radio" name="set" value="${s.id}" ${P.set===s.id?"checked":""}><i class="dot"></i>
       <div class="ph"><img src="${IMGU[s.id]}" decoding="async" alt="${s[S.lang][0]}"></div><div class="tx"><h3>${s[S.lang][0]}</h3><p>${s[S.lang][1]}</p>${tags.join("")}${adj?`<p class="adj" style="margin:8px 0 0">${T("tAdj")}</p>`:""}</div></label>`}).join("");
-  const parts=CONFIG.SETS.map(x=>[x,S.people.filter(p=>p.set===x.id).length]).filter(([x,c])=>c).map(([x,c])=>x[S.lang][0]+(c>1?" ×"+c:"")).join(", ");
+  $("appBox").innerHTML=CONFIG.APPS.map(a=>{const on=P.app===a.id;return `<label class="card noph ${on?"sel":""}"><input type="radio" name="app" value="${a.id}" ${on?"checked":""}><i class="dot"></i>${IMGU[a.id]?`<div class="ph"><img src="${IMGU[a.id]}" alt="${a[S.lang][0]}"></div>`:""}<div class="tx"><h3>${a[S.lang][0]}</h3><p>${a[S.lang][1]}</p><span class="tag">${T("tApp")}</span><span class="tag warn">${T("tPork")}</span>${on&&blocked(a,P.diets)?`<p class="adj" style="margin:8px 0 0">${T("tAdj")}</p>`:""}</div></label>`}).join("");
+  const parts0=CONFIG.SETS.map(x=>[x,S.people.filter(p=>p.set===x.id).length]).filter(([x,c])=>c).map(([x,c])=>x[S.lang][0]+(c>1?" ×"+c:"")).join(", ");
+  const apps=CONFIG.APPS.map(a=>[a,S.people.filter(p=>p.app===a.id).length]).filter(([a,c])=>c).map(([a,c])=>a[S.lang][0]+(c>1?" ×"+c:"")).join(", ");
+  const parts=parts0+(apps?" + "+apps:"");
   $("sum").textContent=parts+" · "+n+" "+T("people")+" · "+T("restaurant");
   $("go").textContent=T("submit");$("go").disabled=!S.ready;
   if(!S.ready)$("sum").textContent=T("loading");
@@ -205,33 +217,35 @@ document.addEventListener("click",e=>{
   if(b.dataset.l){S.lang=b.dataset.l;render();}
   else if(b.dataset.g){S.cur=+b.dataset.g;render();}
   else if(b.dataset.d){S.touched.add(S.cur);const D=S.people[S.cur].diets;D.has(b.dataset.d)?D.delete(b.dataset.d):D.add(b.dataset.d);render();}
-  else if(b.id==="copyAll"){const c=S.people[S.cur];S.people.forEach((p,i)=>{p.set=c.set;p.diets=new Set(c.diets);S.touched.add(i);});render();}
-  else if(b.id==="plus"){if(S.people.length<10){S.people.push({set:CONFIG.DEFAULT_SET,diets:new Set(),note:""});S.cur=S.people.length-1;}render();}
+  else if(b.id==="copyAll"){const c=S.people[S.cur];S.people.forEach((p,i)=>{p.set=c.set;p.app=c.app;p.diets=new Set(c.diets);S.touched.add(i);});render();}
+  else if(b.id==="plus"){if(S.people.length<10){S.people.push({set:CONFIG.DEFAULT_SET,diets:new Set(),note:"",app:""});S.cur=S.people.length-1;}render();}
   else if(b.id==="minus"){if(S.people.length>1){S.people.pop();S.cur=Math.min(S.cur,S.people.length-1);}render();}
   else if(b.id==="edit"){$("done").hidden=true;$("form").hidden=false;$("bar").hidden=false;window.scrollTo(0,0);}
 });
-document.addEventListener("change",e=>{if(e.target.name==="set"){S.touched.add(S.cur);S.people[S.cur].set=e.target.value;render();}});
+document.addEventListener("change",e=>{if(e.target.name==="app"){$("errApp").textContent="";S.touched.add(S.cur);S.people[S.cur].app=e.target.value;render();return;}if(e.target.name==="set"){S.touched.add(S.cur);S.people[S.cur].set=e.target.value;render();}});
 $("room").addEventListener("input",e=>{S.room=e.target.value.trim();});
 $("note").addEventListener("input",e=>{S.people[S.cur].note=e.target.value;S.touched.add(S.cur);});
 
 $("go").addEventListener("click",async()=>{
-  const err=$("err");err.textContent="";
+  const err=$("err");err.textContent="";$("errApp").textContent="";
   if(!S.ready)return;
   if(CONFIG.CUTOFF_HOUR&&new Date().getHours()>=CONFIG.CUTOFF_HOUR){err.textContent=T("closed");return;}
   if(!S.room){err.textContent=T("eRoom");$("room").focus();return;}
+  const miss=S.people.findIndex(p=>!p.app);
+  if(miss>=0){S.cur=miss;render();$("errApp").textContent=T("eApp");$("appBox").scrollIntoView({behavior:"smooth",block:"center"});return;}
   S.touched.add(S.cur);
-  const mk=(p,i)=>{const st=CONFIG.SETS.find(x=>x.id===p.set);return {no:i+1,setId:st.id,setName:st.th[0],setLabel:st[S.lang][0],diets:[...p.diets],note:(p.note||"").trim()};};
+  const mk=(p,i)=>{const st=CONFIG.SETS.find(x=>x.id===p.set);return {no:i+1,setId:st.id,setName:st.th[0],setLabel:st[S.lang][0],app:p.app,appLabel:(CONFIG.APPS.find(a=>a.id===p.app)||{[S.lang]:[""]})[S.lang][0],appName:(CONFIG.APPS.find(a=>a.id===p.app)||{th:[""]}).th[0],diets:[...p.diets],note:(p.note||"").trim()};};
   // หลายเครื่องสแกน QR เดียวกัน: ส่งเฉพาะคนที่แก้บนเครื่องนี้ ให้เซิร์ฟเวอร์รวมกับของคนอื่น (ไม่ต้องดึงข้อมูลก่อนส่ง จึงเร็วขึ้น)
   const partial=!!(CONFIG.SCRIPT_URL&&S.tok&&S.people.length>1);
   const send=S.people.map(mk).filter((p,i)=>!partial||S.touched.has(i));
-  const order={timestamp:new Date().toISOString(),room:S.room,guest:S.name,guests:S.people.length,partial,people:send.map(p=>({no:p.no,setId:p.setId,setName:p.setName,diets:p.diets.join(","),note:p.note})),place:"restaurant",lang:S.lang,token:S.tok};
+  const order={timestamp:new Date().toISOString(),room:S.room,guest:S.name,guests:S.people.length,partial,people:send.map(p=>({no:p.no,setId:p.setId,setName:p.setName,app:p.app,appName:p.appName,diets:p.diets.join(","),note:p.note})),place:"restaurant",lang:S.lang,token:S.tok};
   const btn=$("go");btn.disabled=true;btn.textContent=T("sending");
   try{
     if(CONFIG.SCRIPT_URL){
       const init={method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(order)};
       try{
         const r=await fetch(CONFIG.SCRIPT_URL,init);const j=await r.json();if(!j.ok)throw new Error("rejected");
-        (j.people||[]).forEach(x=>{const i=x.no-1,P=S.people[i];if(P&&!S.touched.has(i)&&CONFIG.SETS.some(t=>t.id===x.setId)){P.set=x.setId;P.diets=new Set(String(x.diets||"").split(",").filter(d=>CONFIG.DIETS.some(k=>k.id===d)));P.note=String(x.note||"");}});
+        (j.people||[]).forEach(x=>{const i=x.no-1,P=S.people[i];if(P&&!S.touched.has(i)&&(CONFIG.SETS.some(t=>t.id===x.setId)||x.setId==="spring")){P.set=CONFIG.SETS.some(t=>t.id===x.setId)?x.setId:CONFIG.DEFAULT_SET;P.app=CONFIG.APPS.some(a=>a.id===x.app)?x.app:"";P.diets=new Set(String(x.diets||"").split(",").filter(d=>CONFIG.DIETS.some(k=>k.id===d)));P.note=String(x.note||"");}});
       }
       catch(x){if(x.message==="rejected")throw x;await fetch(CONFIG.SCRIPT_URL,Object.assign({},init,{mode:"no-cors"}));} // ส่งซ้ำได้ ระบบเขียนทับตาม token
     }else{
@@ -240,14 +254,14 @@ $("go").addEventListener("click",async()=>{
     }
     const people=S.people.map(mk);
     const rows=[[T("rRoom"),order.room],[T("rPlace"),T("restaurant")]];
-    people.forEach(p=>rows.push([T("guestN")(p.no),p.setLabel+(p.diets.length?" ("+p.diets.map(d=>T(d)).join(", ")+")":"")]));
-    people.forEach(p=>{if(p.note)rows.push([T("rNote")+(people.length>1?" ("+T("guestN")(p.no)+")":""),p.note]);});
+    people.forEach(p=>rows.push([GL(p.no),p.setLabel+(p.diets.length?" ("+p.diets.map(d=>T(d)).join(", ")+")":"")+(p.appLabel?" + "+p.appLabel:"")]));
+    people.forEach(p=>{if(p.note)rows.push([T("rNote")+(people.length>1?" ("+GL(p.no)+")":""),p.note]);});
     const dl=$("recap");dl.textContent="";
     rows.forEach(([k,v])=>{const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;dl.append(dt,dd);});
     S.sumBlob=null;$("dlImg").disabled=true;$("sumImg").removeAttribute("src");
     $("form").hidden=true;$("bar").hidden=true;$("done").hidden=false;window.scrollTo(0,0);
     // รูปสรุปสร้างหลังแสดงหน้าสำเร็จแล้ว (ไม่ทำให้ผู้ใช้รอ) และเก็บไว้ในเครื่องผู้ใช้เท่านั้น ไม่ส่งไปเซิร์ฟเวอร์
-    summaryCanvas([rows[0],rows[1]].concat(people.map(p=>[T("guestN")(p.no),p.setLabel+(p.diets.length?" ("+p.diets.map(d=>T(d)).join(", ")+")":""),p.note])),order).then(c=>c.toBlob(bl=>{S.sumBlob=bl;$("sumImg").src=URL.createObjectURL(bl);$("dlImg").disabled=false;},"image/png")).catch(()=>{});
+    summaryCanvas([rows[0],rows[1]].concat(people.map(p=>[GL(p.no),p.setLabel+(p.diets.length?" ("+p.diets.map(d=>T(d)).join(", ")+")":"")+(p.appLabel?"\n+ "+p.appLabel:""),p.note])),order).then(c=>c.toBlob(bl=>{S.sumBlob=bl;$("sumImg").src=URL.createObjectURL(bl);$("dlImg").disabled=false;},"image/png")).catch(()=>{});
   }catch(_){err.textContent=T("eNet");}
   btn.disabled=!S.ready;btn.textContent=T("submit");
 });
@@ -297,7 +311,7 @@ $("dlImg").addEventListener("click",async()=>{
   const a=document.createElement("a");a.href=URL.createObjectURL(S.sumBlob);a.download=name;document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 });
-const setGuests=g=>{S.people=Array.from({length:g},()=>({set:CONFIG.DEFAULT_SET,diets:new Set(),note:""}));S.cur=0;};
+const setGuests=g=>{S.people=Array.from({length:g},()=>({set:CONFIG.DEFAULT_SET,diets:new Set(),note:"",app:""}));S.cur=0;};
 async function boot(){
   try{document.fonts.load('400 28px "Noto Sans Thai"',"ก");document.fonts.load('600 28px "Noto Sans Thai"',"ก");}catch(_){}
   const g=parseInt(q.get("guests"),10);
@@ -311,12 +325,12 @@ async function boot(){
   try{
     const r=await(await fetch(CONFIG.SCRIPT_URL+"?t="+encodeURIComponent(S.tok))).json();
     if(!r.ok)throw new Error("bad");
-    S.room=String(r.room);S.name=r.name||"";
+    S.room=String(r.room);S.name=r.name||"";S.kids=Math.max(0,Math.min(9,+r.kids||0));
     const n=Math.max(1,Math.min(10,+r.guests||1));
     if(S.people.length!==n){const old=S.people;setGuests(n);old.slice(0,n).forEach((p,i)=>S.people[i]=p);}
     S.cur=Math.min(S.cur,n-1);S.locked=true;
     const a=r.answers||{};
-    (a.people||[]).forEach(x=>{const i=x.no-1,P=S.people[i];if(P&&!S.touched.has(i)&&CONFIG.SETS.some(t=>t.id===x.setId)){P.set=x.setId;P.diets=new Set(String(x.diets||"").split(",").filter(d=>CONFIG.DIETS.some(k=>k.id===d)));P.note=String(x.note||"");}});
+    (a.people||[]).forEach(x=>{const i=x.no-1,P=S.people[i];if(P&&!S.touched.has(i)&&(CONFIG.SETS.some(t=>t.id===x.setId)||x.setId==="spring")){P.set=CONFIG.SETS.some(t=>t.id===x.setId)?x.setId:CONFIG.DEFAULT_SET;P.app=CONFIG.APPS.some(a=>a.id===x.app)?x.app:"";P.diets=new Set(String(x.diets||"").split(",").filter(d=>CONFIG.DIETS.some(k=>k.id===d)));P.note=String(x.note||"");}});
     if(S.people.length===1&&!S.people[0].note&&a.note&&!S.touched.has(0))S.people[0].note=String(a.note);
     S.ready=true;
     $("msg").hidden=true;$("form").hidden=false;$("bar").hidden=false;render();
