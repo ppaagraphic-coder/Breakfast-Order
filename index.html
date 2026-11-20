@@ -247,7 +247,7 @@ $("go").addEventListener("click",async()=>{
     S.sumBlob=null;$("dlImg").disabled=true;$("sumImg").removeAttribute("src");
     $("form").hidden=true;$("bar").hidden=true;$("done").hidden=false;window.scrollTo(0,0);
     // รูปสรุปสร้างหลังแสดงหน้าสำเร็จแล้ว (ไม่ทำให้ผู้ใช้รอ) และเก็บไว้ในเครื่องผู้ใช้เท่านั้น ไม่ส่งไปเซิร์ฟเวอร์
-    summaryCanvas(rows,order).then(c=>c.toBlob(bl=>{S.sumBlob=bl;$("sumImg").src=URL.createObjectURL(bl);$("dlImg").disabled=false;},"image/png")).catch(()=>{});
+    summaryCanvas([rows[0],rows[1]].concat(people.map(p=>[T("guestN")(p.no),p.setLabel+(p.diets.length?" ("+p.diets.map(d=>T(d)).join(", ")+")":""),p.note])),order).then(c=>c.toBlob(bl=>{S.sumBlob=bl;$("sumImg").src=URL.createObjectURL(bl);$("dlImg").disabled=false;},"image/png")).catch(()=>{});
   }catch(_){err.textContent=T("eNet");}
   btn.disabled=!S.ready;btn.textContent=T("submit");
 });
@@ -262,10 +262,10 @@ async function summaryCanvas(rows,order){
   const m=document.createElement("canvas").getContext("2d");m.font="600 30px "+F;
   const inner=W-pad*2-48;
   const lw=360,lh=logo?Math.round(lw*logo.height/logo.width):0;
-  const head=rows.slice(0,2),items=rows.slice(2).map(([k,v])=>({k,lines:wrapText(m,v,inner)}));
+  const head=rows.slice(0,2),items=rows.slice(2).map(([k,v,n])=>{const has=!!n,fw=has?Math.round(inner*.54):inner,nw=inner-fw-24;m.font="600 30px "+F;const fl=wrapText(m,v,fw);m.font="400 26px "+F;return {k,has,fw,nw,fl,nl:has?wrapText(m,n,nw):[]};});m.font="600 30px "+F;
   const topY=pad+8, titleY=topY+(logo?lh+44:20)+40, boxY=titleY+34, boxH=118;
   let y=boxY+boxH+20;
-  const hs=items.map(r=>24+30+r.lines.length*44+16);
+  const hs=items.map(r=>24+30+Math.max(r.fl.length,r.nl.length||0)*44+16);
   const H=y+hs.reduce((a,h)=>a+h+14,0)+84;
   const c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
   const rr=(x,y,w,h,r,fill,stroke)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();if(fill){g.fillStyle=fill;g.fill();}if(stroke){g.strokeStyle=stroke;g.lineWidth=2;g.stroke();}};
@@ -277,8 +277,12 @@ async function summaryCanvas(rows,order){
   head.forEach(([k,v],i)=>{const x=pad+28+i*((W-pad*2)/2);g.font="400 24px "+F;g.fillStyle=MUTED;g.fillText(k,x,boxY+42);g.font="700 38px "+FS;g.fillStyle=GOLD;g.fillText(v,x,boxY+92);});
   g.fillStyle=LINE;g.fillRect(W/2,boxY+24,2,boxH-48);
   items.forEach((r,i)=>{const h=hs[i];rr(pad,y,W-pad*2,h,20,CARD,LINE);g.fillStyle=GOLD;g.fillRect(pad,y+22,5,h-44);
-    g.font="400 24px "+F;g.fillStyle=MUTED;g.fillText(r.k,pad+24,y+24+24);
-    g.font="600 30px "+F;g.fillStyle=INK;r.lines.forEach((l,n)=>g.fillText(l,pad+24,y+24+30+34+n*44-10));y+=h+14;});
+    const x0=pad+24,x1=x0+r.fw+24,by=y+24+30+24;
+    g.font="400 24px "+F;g.fillStyle=MUTED;g.fillText(r.k,x0,y+48);
+    if(r.has){g.fillStyle=LINE;g.fillRect(x1-13,y+24,2,h-48);g.fillText(T("rNote"),x1,y+48);}
+    g.font="600 30px "+F;g.fillStyle=INK;r.fl.forEach((l,n)=>g.fillText(l,x0,by+n*44));
+    if(r.has){g.font="400 26px "+F;g.fillStyle=GOLD;r.nl.forEach((l,n)=>g.fillText(l,x1,by+n*44));}
+    y+=h+14;});
   g.fillStyle=LINE;g.fillRect(pad,H-64,W-pad*2,2);
   g.font="400 22px "+F;g.fillStyle=MUTED;g.fillText(new Date(order.timestamp).toLocaleString(S.lang==="en"?"en-GB":"th-TH"),pad,H-24);
   g.textAlign="right";g.fillText(CONFIG.HOTEL_NAME,W-pad,H-24);g.textAlign="left";
