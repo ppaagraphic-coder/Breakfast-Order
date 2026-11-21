@@ -135,7 +135,7 @@ input[type=text],textarea{width:100%;font:inherit;font-size:16px;padding:12px 14
 /* ===== ตั้งค่า (แก้ตรงนี้) ===== */
 const CONFIG = {
   HOTEL_NAME: "INCHANTREE MEEDAO · KANCHANABURI",            // ชื่อโรงแรม
-  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxvJysIrDENgeFMMaquT8-h_UJj_7oLCfQ-YSJe7qhUX2LTdH-Qv7Wcjd2J05HdeiZkHw/exec",                      // วาง URL ของ Google Apps Script (Web app) ที่นี่ ถ้าว่าง = โหมดทดลอง
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycby9KD9EyVhjeFVJpK070wjbQ87uIiRY0qzcd3Tzp0xRaiNlJ2ByJwcH9kahuZmbtcT3/exec",                      // วาง URL ของ Google Apps Script (Web app) ที่นี่ ถ้าว่าง = โหมดทดลอง
   DEFAULT_SET: "khaotom",          // เซ็ตที่เลือกไว้ให้ล่วงหน้า
   CUTOFF_HOUR: 21,                     // ปิดรับสั่งหลังเวลานี้ (ชั่วโมง) 0 = ไม่จำกัด
   SETS: [
@@ -173,6 +173,7 @@ const I18N = {
 };
 const q = new URLSearchParams(location.search);
 const S = {lang:q.get("lang")==="en"?"en":"th",people:[{set:CONFIG.DEFAULT_SET,diets:new Set(),note:"",app:""}],cur:0,tok:(q.get("t")||"").slice(0,40),locked:false,ready:true,touched:new Set(),room:(q.get("room")||"").slice(0,10),name:(q.get("name")||"").slice(0,40),kids:Math.max(0,Math.min(9,parseInt(q.get("kids"),10)||0))};
+const isKid=i=>S.kids>0&&i>=S.people.length-S.kids;
 const GL=n=>T("guestN")(n)+(S.kids&&n>S.people.length-S.kids?" ("+T("kid")+")":"");
 const $=id=>document.getElementById(id), T=k=>I18N[S.lang][k];
 
@@ -203,9 +204,11 @@ function render(){
     if(s.contains.includes("peanut"))tags.push(`<span class="tag warn">${T("tNut")}</span>`);
     return `<label class="card ${P.set===s.id?"sel":""}"><input type="radio" name="set" value="${s.id}" ${P.set===s.id?"checked":""}><i class="dot"></i>
       <div class="ph"><img src="${IMGU[s.id]}" decoding="async" alt="${s[S.lang][0]}"></div><div class="tx"><h3>${s[S.lang][0]}</h3><p>${s[S.lang][1]}</p>${tags.join("")}${adj?`<p class="adj" style="margin:8px 0 0">${T("tAdj")}</p>`:""}</div></label>`}).join("");
+  $("appBox").closest("section").hidden=isKid(S.cur);
+  if(isKid(S.cur))P.app="";
   $("appBox").innerHTML=CONFIG.APPS.map(a=>{const on=P.app===a.id;return `<label class="card noph ${on?"sel":""}"><input type="radio" name="app" value="${a.id}" ${on?"checked":""}><i class="dot"></i>${IMGU[a.id]?`<div class="ph"><img src="${IMGU[a.id]}" alt="${a[S.lang][0]}"></div>`:""}<div class="tx"><h3>${a[S.lang][0]}</h3><p>${a[S.lang][1]}</p><span class="tag">${T("tApp")}</span><span class="tag warn">${T("tPork")}</span>${on&&blocked(a,P.diets)?`<p class="adj" style="margin:8px 0 0">${T("tAdj")}</p>`:""}</div></label>`}).join("");
   const parts0=CONFIG.SETS.map(x=>[x,S.people.filter(p=>p.set===x.id).length]).filter(([x,c])=>c).map(([x,c])=>x[S.lang][0]+(c>1?" ×"+c:"")).join(", ");
-  const apps=CONFIG.APPS.map(a=>[a,S.people.filter(p=>p.app===a.id).length]).filter(([a,c])=>c).map(([a,c])=>a[S.lang][0]+(c>1?" ×"+c:"")).join(", ");
+  const apps=CONFIG.APPS.map(a=>[a,S.people.filter((p,i)=>!isKid(i)&&p.app===a.id).length]).filter(([a,c])=>c).map(([a,c])=>a[S.lang][0]+(c>1?" ×"+c:"")).join(", ");
   const parts=parts0+(apps?" + "+apps:"");
   $("sum").textContent=parts+" · "+n+" "+T("people")+" · "+T("restaurant");
   $("go").textContent=T("submit");$("go").disabled=!S.ready;
@@ -217,7 +220,7 @@ document.addEventListener("click",e=>{
   if(b.dataset.l){S.lang=b.dataset.l;render();}
   else if(b.dataset.g){S.cur=+b.dataset.g;render();}
   else if(b.dataset.d){S.touched.add(S.cur);const D=S.people[S.cur].diets;D.has(b.dataset.d)?D.delete(b.dataset.d):D.add(b.dataset.d);render();}
-  else if(b.id==="copyAll"){const c=S.people[S.cur];S.people.forEach((p,i)=>{p.set=c.set;p.app=c.app;p.diets=new Set(c.diets);S.touched.add(i);});render();}
+  else if(b.id==="copyAll"){const c=S.people[S.cur];S.people.forEach((p,i)=>{p.set=c.set;if(!isKid(i)&&!isKid(S.cur))p.app=c.app;p.diets=new Set(c.diets);S.touched.add(i);});render();}
   else if(b.id==="plus"){if(S.people.length<10){S.people.push({set:CONFIG.DEFAULT_SET,diets:new Set(),note:"",app:""});S.cur=S.people.length-1;}render();}
   else if(b.id==="minus"){if(S.people.length>1){S.people.pop();S.cur=Math.min(S.cur,S.people.length-1);}render();}
   else if(b.id==="edit"){$("done").hidden=true;$("form").hidden=false;$("bar").hidden=false;window.scrollTo(0,0);}
@@ -231,10 +234,10 @@ $("go").addEventListener("click",async()=>{
   if(!S.ready)return;
   if(CONFIG.CUTOFF_HOUR&&new Date().getHours()>=CONFIG.CUTOFF_HOUR){err.textContent=T("closed");return;}
   if(!S.room){err.textContent=T("eRoom");$("room").focus();return;}
-  const miss=S.people.findIndex(p=>!p.app);
+  const miss=S.people.findIndex((p,i)=>!isKid(i)&&!p.app);
   if(miss>=0){S.cur=miss;render();$("errApp").textContent=T("eApp");$("appBox").scrollIntoView({behavior:"smooth",block:"center"});return;}
   S.touched.add(S.cur);
-  const mk=(p,i)=>{const st=CONFIG.SETS.find(x=>x.id===p.set);return {no:i+1,setId:st.id,setName:st.th[0],setLabel:st[S.lang][0],app:p.app,appLabel:(CONFIG.APPS.find(a=>a.id===p.app)||{[S.lang]:[""]})[S.lang][0],appName:(CONFIG.APPS.find(a=>a.id===p.app)||{th:[""]}).th[0],diets:[...p.diets],note:(p.note||"").trim()};};
+  const mk=(p,i)=>{const st=CONFIG.SETS.find(x=>x.id===p.set);return {no:i+1,setId:st.id,setName:st.th[0],setLabel:st[S.lang][0],app:isKid(i)?"":p.app,appLabel:(CONFIG.APPS.find(a=>a.id===(isKid(i)?"":p.app))||{[S.lang]:[""]})[S.lang][0],appName:(CONFIG.APPS.find(a=>a.id===(isKid(i)?"":p.app))||{th:[""]}).th[0],diets:[...p.diets],note:(p.note||"").trim()};};
   // หลายเครื่องสแกน QR เดียวกัน: ส่งเฉพาะคนที่แก้บนเครื่องนี้ ให้เซิร์ฟเวอร์รวมกับของคนอื่น (ไม่ต้องดึงข้อมูลก่อนส่ง จึงเร็วขึ้น)
   const partial=!!(CONFIG.SCRIPT_URL&&S.tok&&S.people.length>1);
   const send=S.people.map(mk).filter((p,i)=>!partial||S.touched.has(i));
